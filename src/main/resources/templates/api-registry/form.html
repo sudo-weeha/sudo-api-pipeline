@@ -1,0 +1,116 @@
+<div th:fragment="content">
+    <h3 th:text="${api == null} ? '注册新 API' : '编辑 API'"></h3>
+
+    <form th:action="@{/api-registry}" method="post" id="apiForm">
+        <input type="hidden" th:if="${api != null}" name="id" th:value="${api.id}">
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label">API 名称</label>
+                <input type="text" class="form-control" name="apiName"
+                       th:value="${api?.apiName}" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">API 标识（唯一）</label>
+                <input type="text" class="form-control" name="apiCode"
+                       th:value="${api?.apiCode}" th:disabled="${api != null}" required>
+                <small class="text-muted">如：GET_USER_INFO</small>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <label class="form-label">请求方式</label>
+                <select class="form-select" name="requestMethod">
+                    <option value="GET" th:selected="${api?.requestMethod == 'GET'}">GET</option>
+                    <option value="POST" th:selected="${api?.requestMethod == 'POST' || api == null}">POST</option>
+                    <option value="PUT" th:selected="${api?.requestMethod == 'PUT'}">PUT</option>
+                    <option value="DELETE" th:selected="${api?.requestMethod == 'DELETE'}">DELETE</option>
+                </select>
+            </div>
+            <div class="col-md-9">
+                <label class="form-label">目标 URL</label>
+                <input type="text" class="form-control" name="requestUrl"
+                       th:value="${api?.requestUrl}" placeholder="http://internal-api/user/query" required>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <label class="form-label">超时（毫秒）</label>
+                <input type="number" class="form-control" name="timeoutMs"
+                       th:value="${api?.timeoutMs}" value="5000">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">重试次数</label>
+                <input type="number" class="form-control" name="retryCount"
+                       th:value="${api?.retryCount}" value="0" min="0">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">缓存 TTL（分钟）</label>
+                <input type="number" class="form-control" name="cacheTtlMin"
+                       th:value="${api?.cacheTtlMin}" value="30" min="0">
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">固定请求头（JSON 格式）</label>
+            <textarea class="form-control" name="requestHeaders" rows="3"
+                      th:text="${api?.requestHeaders}"
+                      placeholder='{"Authorization": "Bearer xxx"}'></textarea>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">描述</label>
+            <textarea class="form-control" name="description" rows="2"
+                      th:text="${api?.description}"></textarea>
+        </div>
+
+        <div class="mb-3">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="status" value="1"
+                       th:checked="${api == null || api.status == 1}">
+                <label class="form-check-label">启用</label>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">保存</button>
+        <a href="/page/api-registry" class="btn btn-secondary">取消</a>
+    </form>
+</div>
+
+<script>
+document.getElementById('apiForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const data = {};
+    formData.forEach((value, key) => {
+        if (key === 'timeoutMs' || key === 'retryCount' || key === 'cacheTtlMin') {
+            data[key] = parseInt(value) || 0;
+        } else if (key === 'status') {
+            data[key] = value ? 1 : 0;
+        } else {
+            data[key] = value;
+        }
+    });
+    data.status = formData.has('status') ? 1 : 0;
+
+    const id = data.id;
+    const method = id ? 'PUT' : 'POST';
+    const url = id ? '/api-registry/' + id : '/api-registry';
+
+    fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(res => res.json())
+    .then(result => {
+        if (result.code === 0) {
+            window.location.href = '/page/api-registry';
+        } else {
+            alert('保存失败: ' + result.msg);
+        }
+    });
+});
+</script>

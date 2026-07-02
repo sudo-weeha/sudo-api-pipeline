@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.pipeline.repository.PipelineExecLogMapper">
+
+    <resultMap id="PipelineExecLogMap" type="com.example.pipeline.model.PipelineExecLog">
+        <id column="id" property="id"/>
+        <result column="pipeline_id" property="pipelineId"/>
+        <result column="pipeline_code" property="pipelineCode"/>
+        <result column="request_params" property="requestParams"/>
+        <result column="node_results" property="nodeResults"/>
+        <result column="final_response" property="finalResponse"/>
+        <result column="total_ms" property="totalMs"/>
+        <result column="status" property="status"/>
+        <result column="error_msg" property="errorMsg"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.example.pipeline.model.PipelineExecLog" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO pipeline_exec_log (pipeline_id, pipeline_code, request_params, node_results,
+            final_response, total_ms, status, error_msg)
+        VALUES (#{pipelineId}, #{pipelineCode}, #{requestParams}, #{nodeResults},
+            #{finalResponse}, #{totalMs}, #{status}, #{errorMsg})
+    </insert>
+
+    <select id="findByPipelineCode" resultMap="PipelineExecLogMap">
+        SELECT * FROM pipeline_exec_log WHERE pipeline_code = #{pipelineCode} ORDER BY id DESC
+    </select>
+
+    <select id="findAll" resultMap="PipelineExecLogMap">
+        SELECT * FROM pipeline_exec_log ORDER BY id DESC
+    </select>
+
+</mapper>

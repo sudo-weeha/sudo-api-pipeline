@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.pipeline.repository.PipelineDefMapper">
+
+    <resultMap id="PipelineDefMap" type="com.example.pipeline.model.PipelineDef">
+        <id column="id" property="id"/>
+        <result column="pipeline_name" property="pipelineName"/>
+        <result column="pipeline_code" property="pipelineCode"/>
+        <result column="pipeline_config" property="pipelineConfig"/>
+        <result column="description" property="description"/>
+        <result column="status" property="status"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <select id="findAll" resultMap="PipelineDefMap">
+        SELECT * FROM pipeline_def ORDER BY id DESC
+    </select>
+
+    <select id="findById" resultMap="PipelineDefMap">
+        SELECT * FROM pipeline_def WHERE id = #{id}
+    </select>
+
+    <select id="findByCode" resultMap="PipelineDefMap">
+        SELECT * FROM pipeline_def WHERE pipeline_code = #{pipelineCode}
+    </select>
+
+    <insert id="insert" parameterType="com.example.pipeline.model.PipelineDef" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO pipeline_def (pipeline_name, pipeline_code, pipeline_config, description, status)
+        VALUES (#{pipelineName}, #{pipelineCode}, #{pipelineConfig}, #{description}, #{status})
+    </insert>
+
+    <update id="update" parameterType="com.example.pipeline.model.PipelineDef">
+        UPDATE pipeline_def
+        SET pipeline_name = #{pipelineName},
+            pipeline_config = #{pipelineConfig},
+            description = #{description},
+            status = #{status}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM pipeline_def WHERE id = #{id}
+    </delete>
+
+</mapper>

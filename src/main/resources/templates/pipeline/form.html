@@ -1,0 +1,1081 @@
+<div th:fragment="content">
+    <style>
+        .builder-shell {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 16px;
+            align-items: stretch;
+        }
+
+        .builder-panel {
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            background: #fff;
+            min-height: 620px;
+        }
+
+        .builder-panel-header {
+            padding: 12px 14px;
+            border-bottom: 1px solid #dee2e6;
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .builder-panel-body {
+            padding: 14px;
+        }
+
+        .api-palette-item {
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 10px 12px;
+            margin-bottom: 10px;
+            background: #fff;
+            cursor: grab;
+        }
+
+        .api-palette-item:active {
+            cursor: grabbing;
+        }
+
+        .api-code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+            font-size: 12px;
+        }
+
+        .canvas-toolbar {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .dag-canvas {
+            position: relative;
+            height: 620px;
+            overflow: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            background:
+                linear-gradient(#f1f3f5 1px, transparent 1px),
+                linear-gradient(90deg, #f1f3f5 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+
+        .dag-canvas.is-drag-over {
+            border-color: #0d6efd;
+            box-shadow: inset 0 0 0 2px rgba(13, 110, 253, 0.16);
+        }
+
+        .dag-canvas svg {
+            position: absolute;
+            inset: 0;
+            width: 1400px;
+            height: 900px;
+            pointer-events: none;
+        }
+
+        .canvas-node {
+            position: absolute;
+            z-index: 2;
+            width: 190px;
+            min-height: 86px;
+            padding: 11px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            background: #fff;
+            box-shadow: 0 8px 22px rgba(33, 37, 41, 0.08);
+            cursor: move;
+            user-select: none;
+        }
+
+        .canvas-node:hover,
+        .canvas-node.is-selected {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.18), 0 8px 22px rgba(33, 37, 41, 0.08);
+        }
+
+        .canvas-node-title {
+            font-weight: 700;
+            font-size: 14px;
+            line-height: 1.3;
+            overflow-wrap: anywhere;
+        }
+
+        .canvas-node-meta {
+            margin-top: 6px;
+            color: #6c757d;
+            font-size: 12px;
+            overflow-wrap: anywhere;
+        }
+
+        .canvas-node-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .edge-label {
+            font-size: 11px;
+            fill: #495057;
+            paint-order: stroke;
+            stroke: #fff;
+            stroke-width: 4px;
+            stroke-linejoin: round;
+            pointer-events: auto;
+            cursor: pointer;
+        }
+
+        .edge-label-bg {
+            fill: #fff;
+            stroke: #0d6efd;
+            stroke-width: 1;
+            rx: 4;
+            pointer-events: auto;
+            cursor: pointer;
+        }
+
+        .edge-line {
+            pointer-events: none;
+        }
+
+        .edge-line.is-selected {
+            stroke: #dc3545;
+            stroke-width: 3.2;
+        }
+
+        .edge-click-target {
+            pointer-events: stroke;
+            cursor: pointer;
+        }
+
+        .empty-canvas {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+            text-align: center;
+            padding: 32px;
+        }
+
+        .drawer-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 1050;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .drawer-overlay.is-open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .drawer {
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 380px;
+            max-width: 100vw;
+            z-index: 1051;
+            background: #fff;
+            box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .drawer.is-open {
+            transform: translateX(0);
+        }
+
+        .drawer-header {
+            padding: 14px 16px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .drawer-header-title {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .drawer-close {
+            background: none;
+            border: none;
+            font-size: 22px;
+            line-height: 1;
+            cursor: pointer;
+            color: #6c757d;
+            padding: 0 4px;
+        }
+
+        .drawer-close:hover {
+            color: #212529;
+        }
+
+        .drawer-body {
+            padding: 16px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .pipeline-form-section {
+            margin-top: 24px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            background: #fff;
+            padding: 20px;
+        }
+
+        .pipeline-form-section .section-title {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .mapping-helper {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 8px;
+        }
+
+        @media (max-width: 1200px) {
+            .builder-shell {
+                grid-template-columns: 1fr;
+            }
+
+            .builder-panel {
+                min-height: auto;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .drawer {
+                width: 100%;
+            }
+        }
+    </style>
+
+    <h3 th:text="${pipeline == null} ? '新增编排' : '编辑编排'"></h3>
+
+    <form id="pipelineForm">
+        <input type="hidden" name="id" th:value="${pipeline?.id}">
+
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <label class="form-label">编排名称</label>
+                <input type="text" class="form-control" name="pipelineName"
+                       th:value="${pipeline?.pipelineName}" required>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">编排标识（产出 API 路径）</label>
+                <input type="text" class="form-control" name="pipelineCode"
+                       th:value="${pipeline?.pipelineCode}" th:disabled="${pipeline != null}" required>
+                <small class="text-muted">POST /api/pipeline/{标识}/execute</small>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">最大并发</label>
+                <input type="number" class="form-control" id="dagMaxConcurrency" min="1" value="8">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">失败策略</label>
+                <select class="form-select" id="dagFailurePolicy">
+                    <option value="CONTINUE">CONTINUE</option>
+                    <option value="FAIL_FAST">FAIL_FAST</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="builder-shell">
+            <div class="builder-panel">
+                <div class="builder-panel-header">已注册 API</div>
+                <div class="builder-panel-body">
+                    <input type="text" class="form-control mb-3" id="apiSearch" placeholder="搜索 API 名称或 Code">
+                    <div id="apiPalette">
+                        <div class="text-muted">正在加载 API...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="builder-panel">
+                <div class="builder-panel-header">DAG 画布</div>
+                <div class="builder-panel-body">
+                    <div class="canvas-toolbar">
+                        <div class="text-muted small" id="canvasHint">把左侧 API 拖到画布。点击“连线”后，再点击目标节点创建依赖。</div>
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" class="btn btn-outline-secondary" onclick="autoLayout()">自动排布</button>
+                            <button type="button" class="btn btn-outline-danger" onclick="clearCanvas()">清空画布</button>
+                        </div>
+                    </div>
+                    <div class="dag-canvas" id="dagCanvas">
+                        <svg id="edgeSvg"></svg>
+                        <div id="canvasNodes"></div>
+                        <div id="emptyCanvas" class="empty-canvas">把已注册 API 拖到这里开始编排。</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Pipeline-level configuration (below the builder) -->
+        <div class="pipeline-form-section">
+            <div class="section-title">编排全局配置</div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-semibold">最终输出表</label>
+                    <textarea class="form-control font-monospace" id="outputMapping" rows="10"
+                              placeholder='{"code":0,"data":{"detail":"${n2.data.data}"},"msg":"success"}'></textarea>
+                    <small class="text-muted">整个编排只有这里配置最终输出。每个 API 节点只配置自己的调用入参。</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-semibold">输入参数</label>
+                    <textarea class="form-control font-monospace" id="inputParamsJson" rows="10"
+                              placeholder='[{"name":"id","type":"string","required":true}]'></textarea>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-8 mb-3">
+                    <label class="form-label">描述</label>
+                    <textarea class="form-control" name="description" rows="2"
+                              th:text="${pipeline?.description}"></textarea>
+                </div>
+                <div class="col-md-4 mb-3 d-flex align-items-end">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="status" value="1"
+                               th:checked="${pipeline == null || pipeline.status == 1}">
+                        <label class="form-check-label">启用</label>
+                    </div>
+                </div>
+            </div>
+            <details class="mb-3">
+                <summary class="text-muted">完整配置 JSON</summary>
+                <textarea class="form-control font-monospace mt-2" id="pipelineConfigJson" rows="10"
+                          th:text="${pipeline?.pipelineConfig}"></textarea>
+            </details>
+            <div>
+                <button type="submit" class="btn btn-primary">保存</button>
+                <a th:if="${pipeline != null}" th:href="@{/page/pipeline/{id}/test(id=${pipeline.id})}"
+                   class="btn btn-outline-success">测试运行</a>
+                <a href="/page/pipeline" class="btn btn-secondary">取消</a>
+            </div>
+        </div>
+    </form>
+
+    <!-- Slide-out configuration drawer -->
+    <div class="drawer-overlay" id="drawerOverlay"></div>
+    <div class="drawer" id="configDrawer">
+        <div class="drawer-header">
+            <span class="drawer-header-title" id="drawerTitle">节点配置</span>
+            <button type="button" class="drawer-close" id="drawerClose" title="关闭">&times;</button>
+        </div>
+        <div class="drawer-body">
+            <div id="nodeConfigEmpty" class="text-muted mb-3">选择画布中的 API 节点后配置它的调用入参。</div>
+            <div id="nodeConfigPanel" style="display:none;">
+                <div class="mb-2">
+                    <label class="form-label">节点 ID</label>
+                    <input type="text" class="form-control" id="selectedNodeId">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">节点名称</label>
+                    <input type="text" class="form-control" id="selectedNodeName">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">API Code</label>
+                    <input type="text" class="form-control" id="selectedApiCode" disabled>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">调用入参映射</label>
+                    <textarea class="form-control font-monospace" id="selectedInputMapping" rows="8"
+                              placeholder='{"userid":"${n1.data.data.userid}"}'></textarea>
+                </div>
+                <div class="mapping-helper mb-3">
+                    <select class="form-select" id="mappingSourceNode"></select>
+                    <input type="text" class="form-control" id="mappingSourcePath" placeholder="data.data.userid">
+                    <button type="button" class="btn btn-outline-secondary" onclick="insertMappingExpression()">插入表达式</button>
+                </div>
+                <button type="button" class="btn btn-primary btn-sm" onclick="applySelectedNodeConfig()">应用节点配置</button>
+            </div>
+
+            <hr>
+
+            <div id="edgeConfigEmpty" class="text-muted mb-3">选择画布中的连线后配置分支条件。</div>
+            <div id="edgeConfigPanel" style="display:none;">
+                <div class="mb-2">
+                    <label class="form-label">分支路径</label>
+                    <input type="text" class="form-control" id="selectedEdgePath" disabled>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">触发状态</label>
+                    <select class="form-select" id="selectedEdgeOnStatus">
+                        <option value="SUCCESS">SUCCESS：上一个 API 成功</option>
+                        <option value="FAILED">FAILED：上一个 API 失败</option>
+                        <option value="ANY">ANY：成功或失败都走</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">分支条件</label>
+                    <textarea class="form-control font-monospace" id="selectedEdgeCondition" rows="4"
+                              placeholder="n1.data.data.userid == '1'"></textarea>
+                    <small class="text-muted">例：userid 等于 1 走这条线，写 n1.data.data.userid == '1'；另一条线写 n1.data.data.userid == '2'。</small>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-primary btn-sm" onclick="applySelectedEdgeConfig()">应用分支配置</button>
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteSelectedEdge()">删除连线</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+let registeredApis = [];
+let canvasNodes = [];
+let canvasEdges = [];
+let selectedNodeId = null;
+let selectedEdgeIndex = null;
+let pendingEdgeFrom = null;
+let nodeSeq = 1;
+const originalRawConfig = document.getElementById('pipelineConfigJson').value.trim();
+
+function openDrawer() {
+    document.getElementById('configDrawer').classList.add('is-open');
+    document.getElementById('drawerOverlay').classList.add('is-open');
+}
+
+function closeDrawer() {
+    document.getElementById('configDrawer').classList.remove('is-open');
+    document.getElementById('drawerOverlay').classList.remove('is-open');
+}
+
+function updateDrawer() {
+    const hasSelection = selectedNodeId !== null || selectedEdgeIndex !== null;
+    if (hasSelection) {
+        if (selectedNodeId !== null) {
+            document.getElementById('drawerTitle').textContent = '节点配置';
+        } else if (selectedEdgeIndex !== null) {
+            document.getElementById('drawerTitle').textContent = '分支配置';
+        }
+        openDrawer();
+    } else {
+        closeDrawer();
+    }
+}
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function safeJsonParse(value, fallback) {
+    if (!value || !value.trim()) {
+        return fallback;
+    }
+    try {
+        return JSON.parse(value);
+    } catch (e) {
+        return fallback;
+    }
+}
+
+function nextNodeId(apiCode) {
+    const base = (apiCode || 'api').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') || 'api';
+    let candidate;
+    do {
+        candidate = `${base}_${nodeSeq++}`;
+    } while (canvasNodes.some(node => node.nodeId === candidate));
+    return candidate;
+}
+
+function loadApis() {
+    fetch('/api-registry')
+        .then(res => res.json())
+        .then(result => {
+            registeredApis = (result.data || []).filter(api => api.status !== 0);
+            renderApiPalette();
+        });
+}
+
+function renderApiPalette() {
+    const keyword = document.getElementById('apiSearch').value.trim().toLowerCase();
+    const container = document.getElementById('apiPalette');
+    const apis = registeredApis.filter(api => {
+        const text = `${api.apiName || ''} ${api.apiCode || ''} ${api.description || ''}`.toLowerCase();
+        return !keyword || text.includes(keyword);
+    });
+    if (!apis.length) {
+        container.innerHTML = '<div class="text-muted">没有匹配的 API。</div>';
+        return;
+    }
+    container.innerHTML = apis.map(api => `
+        <div class="api-palette-item" draggable="true" data-api-code="${escapeHtml(api.apiCode)}">
+            <div class="fw-semibold">${escapeHtml(api.apiName)}</div>
+            <div class="api-code text-primary">${escapeHtml(api.apiCode)}</div>
+            <div class="text-muted small">${escapeHtml(api.requestMethod)} ${escapeHtml(api.requestUrl)}</div>
+        </div>`).join('');
+    container.querySelectorAll('.api-palette-item').forEach(item => {
+        item.addEventListener('dragstart', event => {
+            event.dataTransfer.setData('text/plain', item.dataset.apiCode);
+        });
+    });
+}
+
+function findApi(apiCode) {
+    return registeredApis.find(api => api.apiCode === apiCode) || { apiCode, apiName: apiCode };
+}
+
+function addApiNode(apiCode, x, y) {
+    const api = findApi(apiCode);
+    const node = {
+        nodeId: nextNodeId(api.apiCode),
+        nodeName: api.apiName || api.apiCode,
+        nodeType: 'SERIAL',
+        apiCode: api.apiCode,
+        inputMapping: {},
+        x,
+        y
+    };
+    canvasNodes.push(node);
+    selectedNodeId = node.nodeId;
+    selectedEdgeIndex = null;
+    renderCanvas();
+    renderSelectedNodeConfig();
+    renderSelectedEdgeConfig();
+}
+
+function setupCanvasDrop() {
+    const canvas = document.getElementById('dagCanvas');
+    canvas.addEventListener('dragover', event => {
+        event.preventDefault();
+        canvas.classList.add('is-drag-over');
+    });
+    canvas.addEventListener('dragleave', () => canvas.classList.remove('is-drag-over'));
+    canvas.addEventListener('drop', event => {
+        event.preventDefault();
+        canvas.classList.remove('is-drag-over');
+        const apiCode = event.dataTransfer.getData('text/plain');
+        if (!apiCode) {
+            return;
+        }
+        const rect = canvas.getBoundingClientRect();
+        addApiNode(apiCode, event.clientX - rect.left + canvas.scrollLeft, event.clientY - rect.top + canvas.scrollTop);
+    });
+}
+
+function renderCanvas() {
+    const layer = document.getElementById('canvasNodes');
+    const empty = document.getElementById('emptyCanvas');
+    layer.innerHTML = '';
+    empty.style.display = canvasNodes.length ? 'none' : 'flex';
+    canvasNodes.forEach(node => {
+        const html = `
+            <div class="canvas-node ${selectedNodeId === node.nodeId ? 'is-selected' : ''}" data-node-id="${escapeHtml(node.nodeId)}"
+                 style="left:${node.x}px;top:${node.y}px;">
+                <div class="canvas-node-title">${escapeHtml(node.nodeName || node.apiCode)}</div>
+                <div class="canvas-node-meta">${escapeHtml(node.nodeId)} · ${escapeHtml(node.apiCode)}</div>
+                <div class="canvas-node-actions">
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-action="connect">连线</button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" data-action="delete">删除</button>
+                </div>
+            </div>`;
+        layer.insertAdjacentHTML('beforeend', html);
+    });
+    layer.querySelectorAll('.canvas-node').forEach(el => bindCanvasNode(el));
+    renderEdges();
+    refreshMappingSources();
+}
+
+function bindCanvasNode(el) {
+    let dragging = false;
+    let startX = 0;
+    let startY = 0;
+    let originalX = 0;
+    let originalY = 0;
+    const nodeId = el.dataset.nodeId;
+
+    el.addEventListener('mousedown', event => {
+        if (event.target.closest('button')) {
+            return;
+        }
+        dragging = true;
+        selectedNodeId = nodeId;
+        selectedEdgeIndex = null;
+        const node = canvasNodes.find(item => item.nodeId === nodeId);
+        startX = event.clientX;
+        startY = event.clientY;
+        originalX = node.x;
+        originalY = node.y;
+        document.querySelectorAll('.canvas-node').forEach(item => item.classList.remove('is-selected'));
+        el.classList.add('is-selected');
+        renderSelectedNodeConfig();
+        renderSelectedEdgeConfig();
+        event.preventDefault();
+    });
+
+    document.addEventListener('mousemove', event => {
+        if (!dragging) {
+            return;
+        }
+        const node = canvasNodes.find(item => item.nodeId === nodeId);
+        node.x = Math.max(8, originalX + event.clientX - startX);
+        node.y = Math.max(8, originalY + event.clientY - startY);
+        const nodeEl = document.querySelector(`.canvas-node[data-node-id="${CSS.escape(nodeId)}"]`);
+        if (nodeEl) {
+            nodeEl.style.left = `${node.x}px`;
+            nodeEl.style.top = `${node.y}px`;
+        }
+        renderEdges();
+    });
+
+    document.addEventListener('mouseup', () => {
+        dragging = false;
+    });
+
+    el.addEventListener('click', event => {
+        const action = event.target.dataset.action;
+        if (action === 'connect') {
+            pendingEdgeFrom = nodeId;
+            document.querySelectorAll('.canvas-node').forEach(item => item.classList.remove('is-selected'));
+            el.classList.add('is-selected');
+            document.getElementById('canvasHint').textContent = `已选择 ${nodeId} 作为起点，点击目标 API 节点完成连线。`;
+            event.stopPropagation();
+            return;
+        }
+        if (action === 'delete') {
+            deleteNode(nodeId);
+            event.stopPropagation();
+            return;
+        }
+        if (pendingEdgeFrom && pendingEdgeFrom !== nodeId) {
+            addEdge(pendingEdgeFrom, nodeId);
+            pendingEdgeFrom = null;
+            document.getElementById('canvasHint').textContent = '把左侧 API 拖到画布。点击“连线”后，再点击目标节点创建依赖。';
+        }
+        selectedNodeId = nodeId;
+        selectedEdgeIndex = null;
+        renderSelectedNodeConfig();
+        renderSelectedEdgeConfig();
+        renderCanvas();
+    });
+}
+
+function addEdge(from, to) {
+    if (canvasEdges.some(edge => edge.from === from && edge.to === to)) {
+        return;
+    }
+    canvasEdges.push({ from, to, onStatus: 'SUCCESS', condition: '' });
+    renderCanvas();
+}
+
+function deleteNode(nodeId) {
+    canvasNodes = canvasNodes.filter(node => node.nodeId !== nodeId);
+    canvasEdges = canvasEdges.filter(edge => edge.from !== nodeId && edge.to !== nodeId);
+    if (selectedNodeId === nodeId) {
+        selectedNodeId = null;
+    }
+    selectedEdgeIndex = null;
+    renderCanvas();
+    renderSelectedNodeConfig();
+    renderSelectedEdgeConfig();
+}
+
+function renderEdges() {
+    const svg = document.getElementById('edgeSvg');
+    svg.innerHTML = `
+        <defs>
+            <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                <path d="M0,0 L0,6 L9,3 z" fill="#0d6efd"></path>
+            </marker>
+        </defs>`;
+    const position = new Map(canvasNodes.map(node => [node.nodeId, node]));
+    canvasEdges.forEach((edge, index) => {
+        const from = position.get(edge.from);
+        const to = position.get(edge.to);
+        if (!from || !to) {
+            return;
+        }
+        const startX = from.x + 190;
+        const startY = from.y + 43;
+        const endX = to.x;
+        const endY = to.y + 43;
+        const midX = startX + Math.max(56, (endX - startX) / 2);
+        const path = `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX - 8} ${endY}`;
+        const label = edge.condition ? edge.condition : (edge.onStatus || 'SUCCESS');
+        const shortLabel = label.length > 28 ? label.slice(0, 25) + '...' : label;
+        const selectedClass = selectedEdgeIndex === index ? ' is-selected' : '';
+        const labelX = (startX + endX) / 2;
+        const labelY = (startY + endY) / 2 - 8;
+        const labelWidth = Math.max(58, shortLabel.length * 7 + 16);
+        svg.insertAdjacentHTML('beforeend', `
+            <path class="edge-click-target" data-edge-index="${index}" d="${path}" fill="none" stroke="transparent" stroke-width="16"></path>
+            <path class="edge-line${selectedClass}" d="${path}" fill="none" stroke="#0d6efd" stroke-width="2.4" marker-end="url(#arrow)"></path>
+            <rect class="edge-label-bg" data-edge-index="${index}" x="${labelX - labelWidth / 2}" y="${labelY - 15}" width="${labelWidth}" height="20"></rect>
+            <text class="edge-label" data-edge-index="${index}" x="${labelX}" y="${labelY}" text-anchor="middle">${escapeHtml(shortLabel)}</text>`);
+    });
+    svg.querySelectorAll('[data-edge-index]').forEach(item => {
+        item.addEventListener('click', event => {
+            selectedEdgeIndex = parseInt(item.dataset.edgeIndex, 10);
+            selectedNodeId = null;
+            pendingEdgeFrom = null;
+            document.getElementById('canvasHint').textContent = '已选择连线，可在右侧配置分支条件。';
+            renderCanvas();
+            renderSelectedNodeConfig();
+            renderSelectedEdgeConfig();
+            event.stopPropagation();
+        });
+    });
+}
+
+function renderSelectedNodeConfig() {
+    const panel = document.getElementById('nodeConfigPanel');
+    const empty = document.getElementById('nodeConfigEmpty');
+    const node = canvasNodes.find(item => item.nodeId === selectedNodeId);
+    if (!node) {
+        panel.style.display = 'none';
+        empty.style.display = 'block';
+        updateDrawer();
+        return;
+    }
+    panel.style.display = 'block';
+    empty.style.display = 'none';
+    document.getElementById('selectedNodeId').value = node.nodeId;
+    document.getElementById('selectedNodeName').value = node.nodeName || '';
+    document.getElementById('selectedApiCode').value = node.apiCode || '';
+    document.getElementById('selectedInputMapping').value = JSON.stringify(node.inputMapping || {}, null, 2);
+    refreshMappingSources();
+    updateDrawer();
+}
+
+function renderSelectedEdgeConfig() {
+    const panel = document.getElementById('edgeConfigPanel');
+    const empty = document.getElementById('edgeConfigEmpty');
+    const edge = selectedEdgeIndex !== null ? canvasEdges[selectedEdgeIndex] : null;
+    if (!edge) {
+        panel.style.display = 'none';
+        empty.style.display = 'block';
+        updateDrawer();
+        return;
+    }
+    panel.style.display = 'block';
+    empty.style.display = 'none';
+    document.getElementById('selectedEdgePath').value = `${edge.from} -> ${edge.to}`;
+    document.getElementById('selectedEdgeOnStatus').value = edge.onStatus || 'SUCCESS';
+    document.getElementById('selectedEdgeCondition').value = edge.condition || '';
+    updateDrawer();
+}
+
+function applySelectedEdgeConfig() {
+    const edge = selectedEdgeIndex !== null ? canvasEdges[selectedEdgeIndex] : null;
+    if (!edge) {
+        return;
+    }
+    edge.onStatus = document.getElementById('selectedEdgeOnStatus').value || 'SUCCESS';
+    edge.condition = document.getElementById('selectedEdgeCondition').value.trim();
+    renderCanvas();
+    renderSelectedEdgeConfig();
+}
+
+function deleteSelectedEdge() {
+    if (selectedEdgeIndex === null || !canvasEdges[selectedEdgeIndex]) {
+        return;
+    }
+    canvasEdges.splice(selectedEdgeIndex, 1);
+    selectedEdgeIndex = null;
+    renderCanvas();
+    renderSelectedEdgeConfig();
+}
+
+function applySelectedNodeConfig() {
+    const node = canvasNodes.find(item => item.nodeId === selectedNodeId);
+    if (!node) {
+        return;
+    }
+    selectedEdgeIndex = null;
+    const oldId = node.nodeId;
+    const newId = document.getElementById('selectedNodeId').value.trim();
+    if (!newId) {
+        alert('节点 ID 不能为空');
+        return;
+    }
+    if (oldId !== newId && canvasNodes.some(item => item.nodeId === newId)) {
+        alert('节点 ID 已存在');
+        return;
+    }
+    node.nodeId = newId;
+    node.nodeName = document.getElementById('selectedNodeName').value.trim() || node.apiCode;
+    const mapping = safeJsonParse(document.getElementById('selectedInputMapping').value, null);
+    if (mapping === null || Array.isArray(mapping) || typeof mapping !== 'object') {
+        alert('调用入参映射必须是 JSON 对象');
+        return;
+    }
+    node.inputMapping = mapping;
+    canvasEdges.forEach(edge => {
+        if (edge.from === oldId) edge.from = newId;
+        if (edge.to === oldId) edge.to = newId;
+    });
+    selectedNodeId = newId;
+    renderCanvas();
+    renderSelectedNodeConfig();
+    renderSelectedEdgeConfig();
+}
+
+function refreshMappingSources() {
+    const select = document.getElementById('mappingSourceNode');
+    const current = select.value;
+    const options = ['request', ...canvasNodes.map(node => node.nodeId)]
+        .map(id => `<option value="${escapeHtml(id)}" ${current === id ? 'selected' : ''}>${escapeHtml(id)}</option>`)
+        .join('');
+    select.innerHTML = options;
+}
+
+function insertMappingExpression() {
+    const source = document.getElementById('mappingSourceNode').value;
+    const path = document.getElementById('mappingSourcePath').value.trim();
+    const expression = '${' + source + (path ? '.' + path : '') + '}';
+    const textarea = document.getElementById('selectedInputMapping');
+    const start = textarea.selectionStart || textarea.value.length;
+    const end = textarea.selectionEnd || textarea.value.length;
+    textarea.value = textarea.value.slice(0, start) + expression + textarea.value.slice(end);
+    textarea.focus();
+}
+
+function autoLayout() {
+    applyDagLayout(canvasNodes, canvasEdges);
+    renderCanvas();
+}
+
+function applyDagLayout(nodes, edges) {
+    const nodeIds = new Set(nodes.map(node => node.nodeId));
+    const order = new Map(nodes.map((node, index) => [node.nodeId, index]));
+    const incomingCount = new Map(nodes.map(node => [node.nodeId, 0]));
+    const outgoing = new Map(nodes.map(node => [node.nodeId, []]));
+
+    edges.forEach(edge => {
+        if (!nodeIds.has(edge.from) || !nodeIds.has(edge.to)) {
+            return;
+        }
+        outgoing.get(edge.from).push(edge.to);
+        incomingCount.set(edge.to, incomingCount.get(edge.to) + 1);
+    });
+
+    const queue = nodes
+        .filter(node => incomingCount.get(node.nodeId) === 0)
+        .sort((a, b) => order.get(a.nodeId) - order.get(b.nodeId))
+        .map(node => node.nodeId);
+    const rank = new Map(queue.map(nodeId => [nodeId, 0]));
+    let cursor = 0;
+
+    while (cursor < queue.length) {
+        const current = queue[cursor++];
+        const currentRank = rank.get(current) || 0;
+        (outgoing.get(current) || []).forEach(next => {
+            rank.set(next, Math.max(rank.get(next) || 0, currentRank + 1));
+            incomingCount.set(next, incomingCount.get(next) - 1);
+            if (incomingCount.get(next) === 0) {
+                queue.push(next);
+            }
+        });
+    }
+
+    nodes.forEach(node => {
+        if (!rank.has(node.nodeId)) {
+            rank.set(node.nodeId, 0);
+        }
+    });
+
+    const columns = new Map();
+    nodes.forEach(node => {
+        const column = rank.get(node.nodeId) || 0;
+        if (!columns.has(column)) {
+            columns.set(column, []);
+        }
+        columns.get(column).push(node);
+    });
+
+    Array.from(columns.keys()).sort((a, b) => a - b).forEach(column => {
+        columns.get(column)
+            .sort((a, b) => order.get(a.nodeId) - order.get(b.nodeId))
+            .forEach((node, row) => {
+                node.x = 40 + column * 280;
+                node.y = 40 + row * 150;
+            });
+    });
+}
+
+function clearCanvas() {
+    if (!confirm('确定清空画布吗？')) {
+        return;
+    }
+    canvasNodes = [];
+    canvasEdges = [];
+    selectedNodeId = null;
+    selectedEdgeIndex = null;
+    renderCanvas();
+    renderSelectedNodeConfig();
+    renderSelectedEdgeConfig();
+}
+
+function buildPipelineConfig() {
+    const inputParams = safeJsonParse(document.getElementById('inputParamsJson').value, []);
+    const outputMapping = safeJsonParse(document.getElementById('outputMapping').value, null);
+    if (!Array.isArray(inputParams)) {
+        throw new Error('输入参数必须是 JSON 数组');
+    }
+    if (outputMapping === null || Array.isArray(outputMapping) || typeof outputMapping !== 'object') {
+        throw new Error('最终输出表必须是 JSON 对象');
+    }
+    const nodes = canvasNodes.map(node => ({
+        nodeId: node.nodeId,
+        nodeName: node.nodeName,
+        nodeType: 'SERIAL',
+        apiCode: node.apiCode,
+        inputMapping: node.inputMapping || {}
+    }));
+    if (!nodes.length) {
+        throw new Error('请先拖入至少一个 API 节点');
+    }
+    const edges = [];
+    const incoming = new Set(canvasEdges.map(edge => edge.to));
+    const outgoing = new Set(canvasEdges.map(edge => edge.from));
+    nodes.forEach(node => {
+        if (!incoming.has(node.nodeId)) {
+            edges.push({ from: 'START', to: node.nodeId, onStatus: 'SUCCESS' });
+        }
+    });
+    canvasEdges.forEach(edge => {
+        const item = { from: edge.from, to: edge.to, onStatus: edge.onStatus || 'SUCCESS' };
+        if (edge.condition) {
+            item.condition = edge.condition;
+        }
+        edges.push(item);
+    });
+    nodes.forEach(node => {
+        if (!outgoing.has(node.nodeId)) {
+            edges.push({ from: node.nodeId, to: 'END', onStatus: 'SUCCESS' });
+        }
+    });
+    return {
+        inputParams,
+        nodes,
+        edges,
+        dagConfig: {
+            maxConcurrency: parseInt(document.getElementById('dagMaxConcurrency').value) || 8,
+            failurePolicy: document.getElementById('dagFailurePolicy').value || 'CONTINUE'
+        },
+        outputMapping
+    };
+}
+
+document.getElementById('pipelineForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    let pipelineConfig;
+    try {
+        const rawConfig = document.getElementById('pipelineConfigJson').value.trim();
+        if (rawConfig && rawConfig !== originalRawConfig) {
+            pipelineConfig = JSON.parse(rawConfig);
+        } else {
+            pipelineConfig = buildPipelineConfig();
+        }
+    } catch (err) {
+        alert(err.message);
+        return;
+    }
+    document.getElementById('pipelineConfigJson').value = JSON.stringify(pipelineConfig, null, 2);
+
+    const data = {
+        pipelineName: document.querySelector('[name="pipelineName"]').value,
+        pipelineCode: document.querySelector('[name="pipelineCode"]').value,
+        pipelineConfig,
+        description: document.querySelector('[name="description"]').value,
+        status: document.querySelector('[name="status"]').checked ? 1 : 0
+    };
+    const id = document.querySelector('[name="id"]').value;
+    fetch(id ? '/pipeline-def/' + id : '/pipeline-def', {
+        method: id ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(res => res.json())
+    .then(result => {
+        if (result.code === 0) {
+            window.location.href = '/page/pipeline';
+        } else {
+            alert('保存失败: ' + result.msg);
+        }
+    });
+});
+
+function loadExistingConfig() {
+    if (!originalRawConfig) {
+        document.getElementById('inputParamsJson').value = JSON.stringify([{ name: 'id', type: 'string', required: true }], null, 2);
+        document.getElementById('outputMapping').value = JSON.stringify({ code: 0, data: {}, msg: 'success' }, null, 2);
+        return;
+    }
+    const config = safeJsonParse(originalRawConfig, null);
+    if (!config) {
+        return;
+    }
+    document.getElementById('inputParamsJson').value = JSON.stringify(config.inputParams || [], null, 2);
+    document.getElementById('outputMapping').value = JSON.stringify(config.outputMapping || { code: 0, data: {}, msg: 'success' }, null, 2);
+    document.getElementById('dagMaxConcurrency').value = config.dagConfig?.maxConcurrency || 8;
+    document.getElementById('dagFailurePolicy').value = config.dagConfig?.failurePolicy || 'CONTINUE';
+    canvasNodes = (config.nodes || []).filter(node => node.nodeType === 'SERIAL').map(node => ({
+        nodeId: node.nodeId,
+        nodeName: node.nodeName,
+        nodeType: 'SERIAL',
+        apiCode: node.apiCode,
+        inputMapping: node.inputMapping || {},
+        x: 40,
+        y: 40
+    }));
+    canvasEdges = (config.edges || [])
+        .filter(edge => edge.from !== 'START' && edge.to !== 'END')
+        .map(edge => ({ from: edge.from, to: edge.to, onStatus: edge.onStatus || 'SUCCESS', condition: edge.condition || '' }));
+    applyDagLayout(canvasNodes, canvasEdges);
+    nodeSeq = canvasNodes.length + 1;
+}
+
+document.getElementById('apiSearch').addEventListener('input', renderApiPalette);
+setupCanvasDrop();
+loadExistingConfig();
+loadApis();
+renderCanvas();
+renderSelectedNodeConfig();
+renderSelectedEdgeConfig();
+
+document.getElementById('drawerClose').addEventListener('click', function() {
+    selectedNodeId = null;
+    selectedEdgeIndex = null;
+    pendingEdgeFrom = null;
+    document.getElementById('canvasHint').textContent = '把左侧 API 拖到画布。点击"连线"后，再点击目标节点创建依赖。';
+    renderCanvas();
+    renderSelectedNodeConfig();
+    renderSelectedEdgeConfig();
+});
+
+document.getElementById('drawerOverlay').addEventListener('click', function() {
+    selectedNodeId = null;
+    selectedEdgeIndex = null;
+    pendingEdgeFrom = null;
+    document.getElementById('canvasHint').textContent = '把左侧 API 拖到画布。点击"连线"后，再点击目标节点创建依赖。';
+    renderCanvas();
+    renderSelectedNodeConfig();
+    renderSelectedEdgeConfig();
+});
+</script>

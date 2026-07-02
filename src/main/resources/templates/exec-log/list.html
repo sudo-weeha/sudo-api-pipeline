@@ -1,0 +1,44 @@
+<div th:fragment="content">
+    <h3>执行日志</h3>
+
+    <div th:if="${logs == null || logs.isEmpty()}" class="alert alert-info">
+        暂无执行日志。
+    </div>
+
+    <table th:if="${logs != null && !logs.isEmpty()}" class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>编排标识</th>
+                <th>状态</th>
+                <th>总耗时(ms)</th>
+                <th>入参</th>
+                <th>响应</th>
+                <th>错误信息</th>
+                <th>时间</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="log : ${logs}">
+                <td th:text="${log.id}"></td>
+                <td><code th:text="${log.pipelineCode}"></code></td>
+                <td>
+                    <span class="badge"
+                          th:classappend="${log.status == 'SUCCESS'} ? 'bg-success' : (${log.status == 'PARTIAL'} ? 'bg-warning' : 'bg-danger')"
+                          th:text="${log.status}"></span>
+                </td>
+                <td th:text="${log.totalMs}"></td>
+                <td>
+                    <small th:text="${log.requestParams}"></small>
+                </td>
+                <td>
+                    <small th:text="${log.finalResponse}"></small>
+                </td>
+                <td>
+                    <small class="text-danger" th:text="${log.errorMsg}"></small>
+                </td>
+                <td th:text="${log.createdAt != null ? #temporals.format(log.createdAt, 'MM-dd HH:mm:ss') : ''}"></td>
+            </tr>
+        </tbody>
+    </table>
+</div>

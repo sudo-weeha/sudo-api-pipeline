@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.pipeline.repository.ApiRegistryMapper">
+
+    <resultMap id="ApiRegistryMap" type="com.example.pipeline.model.ApiRegistry">
+        <id column="id" property="id"/>
+        <result column="api_name" property="apiName"/>
+        <result column="api_code" property="apiCode"/>
+        <result column="request_method" property="requestMethod"/>
+        <result column="request_url" property="requestUrl"/>
+        <result column="request_headers" property="requestHeaders"/>
+        <result column="timeout_ms" property="timeoutMs"/>
+        <result column="retry_count" property="retryCount"/>
+        <result column="cache_ttl_min" property="cacheTtlMin"/>
+        <result column="description" property="description"/>
+        <result column="status" property="status"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <select id="findAll" resultMap="ApiRegistryMap">
+        SELECT * FROM api_registry ORDER BY id DESC
+    </select>
+
+    <select id="findById" resultMap="ApiRegistryMap">
+        SELECT * FROM api_registry WHERE id = #{id}
+    </select>
+
+    <select id="findByCode" resultMap="ApiRegistryMap">
+        SELECT * FROM api_registry WHERE api_code = #{apiCode}
+    </select>
+
+    <insert id="insert" parameterType="com.example.pipeline.model.ApiRegistry" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO api_registry (api_name, api_code, request_method, request_url, request_headers,
+            timeout_ms, retry_count, cache_ttl_min, description, status)
+        VALUES (#{apiName}, #{apiCode}, #{requestMethod}, #{requestUrl}, #{requestHeaders},
+            #{timeoutMs}, #{retryCount}, #{cacheTtlMin}, #{description}, #{status})
+    </insert>
+
+    <update id="update" parameterType="com.example.pipeline.model.ApiRegistry">
+        UPDATE api_registry
+        SET api_name = #{apiName},
+            request_method = #{requestMethod},
+            request_url = #{requestUrl},
+            request_headers = #{requestHeaders},
+            timeout_ms = #{timeoutMs},
+            retry_count = #{retryCount},
+            cache_ttl_min = #{cacheTtlMin},
+            description = #{description},
+            status = #{status}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM api_registry WHERE id = #{id}
+    </delete>
+
+</mapper>

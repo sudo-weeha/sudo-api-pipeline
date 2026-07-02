@@ -1,0 +1,75 @@
+<div th:fragment="content">
+    <h3>测试运行：<span th:text="${pipeline.pipelineName}"></span></h3>
+    <p class="text-muted">调用路径：POST /api/pipeline/<code th:text="${pipeline.pipelineCode}"></code>/execute</p>
+
+    <div class="row">
+        <!-- 左侧：输入参数 -->
+        <div class="col-md-6">
+            <div class="card mb-3">
+                <div class="card-header"><strong>输入参数</strong></div>
+                <div class="card-body">
+                    <div th:if="${pipelineConfig.inputParams == null || pipelineConfig.inputParams.isEmpty()}" class="text-muted">
+                        此编排无需输入参数。
+                    </div>
+                    <div class="mb-3" th:each="inputParam : ${pipelineConfig.inputParams}">
+                        <label class="form-label" th:text="${inputParam.name} + (${inputParam.required} ? ' *' : '')"></label>
+                        <input type="text" class="form-control test-input"
+                               th:attr="data-name=${inputParam.name}"
+                               th:required="${inputParam.required}">
+                        <small class="text-muted" th:text="${inputParam.description}"></small>
+                    </div>
+                    <button class="btn btn-success" onclick="executePipeline()">▶ 执行</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧：执行结果 -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between">
+                    <strong>响应结果</strong>
+                    <span id="execTime" class="text-muted"></span>
+                </div>
+                <div class="card-body">
+                    <pre id="execResult" class="bg-light p-3 rounded"
+                         style="max-height: 500px; overflow-y: auto;">点击"执行"查看结果...</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+function executePipeline() {
+    const params = {};
+    document.querySelectorAll('.test-input').forEach(input => {
+        const name = input.dataset.name;
+        let value = input.value;
+        // 尝试解析数字和布尔值
+        if (value === 'true') value = true;
+        else if (value === 'false') value = false;
+        else if (!isNaN(value) && value.trim() !== '') value = Number(value);
+        params[name] = value;
+    });
+
+    const code = /*[[${pipeline.pipelineCode}]]*/ '';
+
+    const startTime = Date.now();
+    document.getElementById('execResult').textContent = '执行中...';
+
+    fetch('/api/pipeline/' + code + '/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params)
+    })
+    .then(res => res.json())
+    .then(data => {
+        const elapsed = Date.now() - startTime;
+        document.getElementById('execTime').textContent = elapsed + 'ms';
+        document.getElementById('execResult').textContent = JSON.stringify(data, null, 2);
+    })
+    .catch(err => {
+        document.getElementById('execResult').textContent = 'Error: ' + err.message;
+    });
+}
+</script>
